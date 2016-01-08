@@ -1,6 +1,6 @@
 {
   "name": "meshblu-core-task-deliver-webhook",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Deliver Meshblu webhooks",
   "main": "index.js",
   "scripts": {
@@ -36,6 +36,7 @@
     "uuid": "^2.0.1"
   },
   "dependencies": {
+    "lodash": "^3.10.1",
     "meshblu-core-manager-token": "^2.3.0",
     "request": "^2.67.0"
   }
