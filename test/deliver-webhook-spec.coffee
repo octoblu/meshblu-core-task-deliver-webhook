@@ -3,7 +3,7 @@ uuid = require 'uuid'
 redis = require 'fakeredis'
 mongojs = require 'mongojs'
 Datastore = require 'meshblu-core-datastore'
-MessageWebhook = require '../src/message-webhook'
+MessageWebhook = require '../'
 
 describe 'MessageWebhook', ->
   beforeEach ->

@@ -1,2 +1,2 @@
 require('coffee-script/register');
-module.exports = require('./src/check-token');
+module.exports = require('./src/deliver-webhook');
