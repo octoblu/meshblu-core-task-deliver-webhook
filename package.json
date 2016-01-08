@@ -1,14 +1,14 @@
 {
-  "name": "meshblu-core-task-message-webhook",
+  "name": "meshblu-core-task-deliver-webhook",
   "version": "1.0.0",
-  "description": "Send Meshblu message webhooks",
+  "description": "Deliver Meshblu webhooks",
   "main": "index.js",
   "scripts": {
     "test": "istanbul cover _mocha -- -R spec --require coffee-coverage/register-istanbul"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/octoblu/meshblu-core-task-message-webhook.git"
+    "url": "git+https://github.com/octoblu/meshblu-core-task-deliver-webhook.git"
   },
   "keywords": [
     "meshblu",
@@ -17,9 +17,9 @@
   "author": "Octoblu <npm@octoblu.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/octoblu/meshblu-core-task-message-webhook/issues"
+    "url": "https://github.com/octoblu/meshblu-core-task-deliver-webhook/issues"
   },
-  "homepage": "https://github.com/octoblu/meshblu-core-task-message-webhook#readme",
+  "homepage": "https://github.com/octoblu/meshblu-core-task-deliver-webhook#readme",
   "devDependencies": {
     "chai": "^3.4.1",
     "coffee-coverage": "^0.7.0",
