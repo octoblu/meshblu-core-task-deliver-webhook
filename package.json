@@ -1,6 +1,6 @@
 {
   "name": "meshblu-core-task-deliver-webhook",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Deliver Meshblu webhooks",
   "main": "index.js",
   "scripts": {

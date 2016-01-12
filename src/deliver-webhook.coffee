@@ -37,7 +37,7 @@ class MessageWebhook
           'X-MESHBLU-UUID': uuid
         httpSignature: @HTTP_SIGNATURE_OPTIONS
       @_doRequest {deviceOptions, type, options, message}, callback
-      return callback()
+      return
 
     if options.generateAndForwardMeshbluCredentials
       @tokenManager.generateAndStoreTokenInCache uuid, (error, token) =>
@@ -45,9 +45,11 @@ class MessageWebhook
         options =
           auth:
             bearer: bearer
-        @_doRequest {deviceOptions, type, options, message}, (error) =>
+        @_doRequest {deviceOptions, type, options, message}, (requestError) =>
           @tokenManager.removeTokenFromCache uuid, token, (error) =>
-            callback error
+            return callback error if error?
+            return callback requestError if requestError?
+            callback()
       return
 
     @_doRequest {deviceOptions, type, message}, callback
@@ -59,9 +61,8 @@ class MessageWebhook
 
     options.headers['X-MESHBLU-MESSAGE-TYPE'] = type
 
-    @request options, (error, response) =>
+    @request options, (error) =>
       return callback error if error?
-      return callback new Error "HTTP Status: #{response.statusCode}" unless _.inRange response.statusCode, 200, 300
       callback()
 
 module.exports = MessageWebhook
