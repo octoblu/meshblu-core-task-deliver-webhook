@@ -4,13 +4,13 @@ http = require 'http'
 
 class MessageWebhook
   constructor: (options={},dependencies={}) ->
-    {@cache,@datastore,pepper,uuidAliasResolver,privateKey} = options
+    {@cache,@datastore,pepper,uuidAliasResolver,@privateKey} = options
     {@request} = dependencies
     @request ?= require 'request'
     @tokenManager = new TokenManager {@cache, @datastore, pepper, uuidAliasResolver}
     @HTTP_SIGNATURE_OPTIONS =
       keyId: 'meshblu-webhook-key'
-      key: privateKey
+      key: @privateKey
       headers: [ 'date', 'X-MESHBLU-UUID' ]
 
   _doCallback: (request, code, callback) =>
