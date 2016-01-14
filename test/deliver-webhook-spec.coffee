@@ -34,7 +34,7 @@ describe 'MessageWebhook', ->
           metadata:
             responseId: 'its-electric'
             uuid: 'electric-eels'
-            type: 'received'
+            messageType: 'received'
             options:
               url: "http://example.com"
           rawData: '{"devices":"*"}'
@@ -63,7 +63,7 @@ describe 'MessageWebhook', ->
           metadata:
             responseId: 'its-electric'
             uuid: 'electric-eels'
-            type: 'received'
+            messageType: 'received'
             options:
               url: "http://example.com"
               generateAndForwardMeshbluCredentials: true
@@ -97,7 +97,7 @@ describe 'MessageWebhook', ->
           metadata:
             responseId: 'its-electric'
             uuid: 'electric-eels'
-            type: 'received'
+            messageType: 'received'
             options:
               url: "http://example.com"
               signRequest: true
