@@ -1,6 +1,6 @@
 {
   "name": "meshblu-core-task-deliver-webhook",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Deliver Meshblu webhooks",
   "main": "index.js",
   "scripts": {
@@ -37,7 +37,7 @@
   "dependencies": {
     "coffee-script": "^1.10.0",
     "lodash": "^3.10.1",
-    "meshblu-core-manager-token": "^2.3.0",
+    "meshblu-core-manager-token": "^3.0.0",
     "request": "^2.67.0"
   }
 }
