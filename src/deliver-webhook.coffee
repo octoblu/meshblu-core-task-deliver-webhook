@@ -22,21 +22,21 @@ class MessageWebhook
     callback null, response
 
   do: (request, callback) =>
-    {uuid, messageType, options} = request.metadata
+    {uuid, messageType, options, route} = request.metadata
     message = JSON.parse request.rawData
 
-    @_send {uuid, messageType, options, message}, (error) =>
+    @_send {uuid, messageType, options, message, route}, (error) =>
       return callback error if error?
       return @_doCallback request, 204, callback
 
-  _send: ({uuid,messageType,options,message}, callback=->) =>
+  _send: ({uuid, messageType, options, message, route}, callback=->) =>
     deviceOptions = _.omit options, 'generateAndForwardMeshbluCredentials', 'signRequest'
     if options.signRequest && @privateKey?
       options =
         headers:
           'X-MESHBLU-UUID': uuid
         httpSignature: @HTTP_SIGNATURE_OPTIONS
-      @_doRequest {deviceOptions, messageType, options, message}, callback
+      @_doRequest {deviceOptions, messageType, options, message, route}, callback
       return
 
     if options.generateAndForwardMeshbluCredentials
@@ -45,21 +45,22 @@ class MessageWebhook
         options =
           auth:
             bearer: bearer
-        @_doRequest {deviceOptions, messageType, options, message}, (requestError) =>
+        @_doRequest {deviceOptions, messageType, options, message, route}, (requestError) =>
           @tokenManager.removeTokenFromCache uuid, token, (error) =>
             return callback error if error?
             return callback requestError if requestError?
             callback()
       return
 
-    @_doRequest {deviceOptions, messageType, message}, callback
+    @_doRequest {deviceOptions, messageType, message, route}, callback
 
-  _doRequest: ({deviceOptions, messageType, options, message}, callback) =>
+  _doRequest: ({deviceOptions, messageType, options, message, route}, callback) =>
     message ?= {}
     options = _.defaults json: message, deviceOptions, options
     options.headers ?= {}
 
     options.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
+    options.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?
 
     @request options, (error) =>
       return callback error if error?

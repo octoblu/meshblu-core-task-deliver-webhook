@@ -57,6 +57,37 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-MESSAGE-TYPE': 'received'
           json: devices: '*'
 
+    context 'when given a route', ->
+      beforeEach (done) ->
+        request =
+          metadata:
+            responseId: 'its-electric'
+            uuid: 'electric-eels'
+            messageType: 'message.received'
+            route: [{from: 'electric-eels', to: 'electric-feels', type: 'message.received'}]
+            options:
+              url: "http://example.com"
+          rawData: '{"devices":"*"}'
+
+        @sut.do request, (error, @response) => done error
+
+      it 'should return a 204', ->
+        expectedResponse =
+          metadata:
+            responseId: 'its-electric'
+            code: 204
+            status: 'No Content'
+
+        expect(@response).to.deep.equal expectedResponse
+
+      it 'should call request with whatever I want', ->
+        expect(@request).to.have.been.calledWith
+          url: 'http://example.com'
+          headers:
+            'X-MESHBLU-MESSAGE-TYPE': 'message.received'
+            'X-MESHBLU-ROUTE': '[{"from":"electric-eels","to":"electric-feels","type":"message.received"}]'
+          json: devices: '*'
+
     context 'when generating credentials', ->
       beforeEach (done) ->
         request =
