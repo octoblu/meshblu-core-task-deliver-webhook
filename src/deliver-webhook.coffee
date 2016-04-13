@@ -22,7 +22,8 @@ class MessageWebhook
     callback null, response
 
   do: (request, callback) =>
-    {uuid, messageType, options, route} = request.metadata
+    {auth, messageType, options, route} = request.metadata
+    {uuid} = auth
     message = JSON.parse request.rawData
 
     @_send {uuid, messageType, options, message, route}, (error) =>
@@ -50,7 +51,7 @@ class MessageWebhook
     message ?= {}
     options = _.defaults json: message, deviceOptions, options
     options.headers ?= {}
-    options.httpSignature = @HTTP_SIGNATURE_OPTIONS if @privateKey?
+    options.httpSignature = @HTTP_SIGNATURE_OPTIONS if @privateKey? && !options.generateAndForwardMeshbluCredentials
 
     options.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
     options.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?

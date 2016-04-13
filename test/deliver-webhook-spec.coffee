@@ -33,7 +33,7 @@ describe 'MessageWebhook', ->
         request =
           metadata:
             responseId: 'its-electric'
-            uuid: 'electric-eels'
+            auth: uuid: 'electric-eels'
             messageType: 'received'
             options:
               url: "http://example.com"
@@ -63,7 +63,7 @@ describe 'MessageWebhook', ->
         request =
           metadata:
             responseId: 'its-electric'
-            uuid: 'electric-eels'
+            auth: uuid: 'electric-eels'
             messageType: 'message.received'
             route: [{from: 'electric-eels', to: 'electric-feels', type: 'message.received'}]
             options:
@@ -95,7 +95,7 @@ describe 'MessageWebhook', ->
         request =
           metadata:
             responseId: 'its-electric'
-            uuid: 'electric-eels'
+            auth: uuid: 'electric-eels'
             messageType: 'received'
             options:
               url: "http://example.com"
@@ -130,7 +130,7 @@ describe 'MessageWebhook', ->
         request =
           metadata:
             responseId: 'its-electric'
-            uuid: 'electric-eels'
+            auth: uuid: 'electric-eels'
             messageType: 'received'
             options:
               url: "http://example.com"
