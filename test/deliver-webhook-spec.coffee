@@ -157,3 +157,36 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-MESSAGE-TYPE': 'received'
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
+
+    context 'when the request yields an error', ->
+      beforeEach (done) ->
+        @request.yields new Error 'CONNECTION REFUSED'
+        request =
+          metadata:
+            responseId: 'its-electric'
+            auth: uuid: 'electric-eels'
+            messageType: 'received'
+            options:
+              url: "http://example.com"
+          rawData: '{"devices":"*"}'
+
+        @sut.do request, (error, @response) => done error
+
+      it 'should return a 422', ->
+        expectedResponse =
+          metadata:
+            responseId: 'its-electric'
+            code: 400
+            status: 'Bad Request'
+            error:
+              message: 'CONNECTION REFUSED'
+
+        expect(@response).to.deep.equal expectedResponse
+
+      it 'should call request with whatever I want', ->
+        expect(@request).to.have.been.calledWith
+          url: 'http://example.com'
+          headers:
+            'X-MESHBLU-MESSAGE-TYPE': 'received'
+            'X-MESHBLU-UUID': 'electric-eels'
+          json: devices: '*'

@@ -13,24 +13,32 @@ class MessageWebhook
       key: @privateKey
       headers: [ 'date', 'X-MESHBLU-UUID' ]
 
-  _doCallback: (request, code, callback) =>
+  _doCallback: (responseId, code, callback) =>
     response =
       metadata:
-        responseId: request.metadata.responseId
+        responseId: responseId
         code: code
         status: http.STATUS_CODES[code]
     callback null, response
 
+  _doRequestErrorCallback: (responseId, requestError, callback) =>
+    response =
+      metadata:
+        responseId: responseId
+        code: 400
+        status: http.STATUS_CODES[400]
+        error:
+          message: requestError.message
+    callback null, response
+
   do: (request, callback) =>
-    {auth, messageType, options, route} = request.metadata
+    {auth, messageType, options, route, responseId} = request.metadata
     {uuid} = auth
     message = JSON.parse request.rawData
 
-    @_send {uuid, messageType, options, message, route}, (error) =>
-      return callback error if error?
-      return @_doCallback request, 204, callback
+    @_send {uuid, messageType, options, message, route, responseId}, callback
 
-  _send: ({uuid, messageType, options, message, route}, callback=->) =>
+  _send: ({uuid, messageType, options, message, route, responseId}, callback=->) =>
     deviceOptions = _.omit options, 'generateAndForwardMeshbluCredentials', 'signRequest'
     if options.generateAndForwardMeshbluCredentials
       @tokenManager.generateAndStoreTokenInCache uuid, (error, token) =>
@@ -41,11 +49,13 @@ class MessageWebhook
         @_doRequest {deviceOptions, messageType, options, message, route, uuid}, (requestError) =>
           @tokenManager.removeTokenFromCache uuid, token, (error) =>
             return callback error if error?
-            return callback requestError if requestError?
-            callback()
+            return @_doRequestErrorCallback responseId, requestError, callback if requestError?
+            return @_doCallback responseId, 204, callback
       return
 
-    @_doRequest {deviceOptions, messageType, message, route, uuid}, callback
+    @_doRequest {deviceOptions, messageType, message, route, uuid}, (requestError) =>
+      return @_doRequestErrorCallback responseId, requestError, callback if requestError?
+      return @_doCallback responseId, 204, callback
 
   _doRequest: ({deviceOptions, messageType, options, message, route, uuid}, callback) =>
     message ?= {}
@@ -57,8 +67,6 @@ class MessageWebhook
     options.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?
     options.headers['X-MESHBLU-UUID'] = uuid
 
-    @request options, (error) =>
-      return callback error if error?
-      callback()
+    @request options, callback
 
 module.exports = MessageWebhook
