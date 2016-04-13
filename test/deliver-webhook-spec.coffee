@@ -55,6 +55,7 @@ describe 'MessageWebhook', ->
           url: 'http://example.com'
           headers:
             'X-MESHBLU-MESSAGE-TYPE': 'received'
+            'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
 
     context 'when given a route', ->
@@ -86,6 +87,7 @@ describe 'MessageWebhook', ->
           headers:
             'X-MESHBLU-MESSAGE-TYPE': 'message.received'
             'X-MESHBLU-ROUTE': '[{"from":"electric-eels","to":"electric-feels","type":"message.received"}]'
+            'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
 
     context 'when generating credentials', ->
@@ -120,6 +122,7 @@ describe 'MessageWebhook', ->
           url: 'http://example.com'
           headers:
             'X-MESHBLU-MESSAGE-TYPE': 'received'
+            'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
 
     context 'when signRequest', ->
@@ -152,4 +155,5 @@ describe 'MessageWebhook', ->
           url: 'http://example.com'
           headers:
             'X-MESHBLU-MESSAGE-TYPE': 'received'
+            'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'

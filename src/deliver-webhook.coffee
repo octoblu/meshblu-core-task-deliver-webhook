@@ -31,36 +31,30 @@ class MessageWebhook
 
   _send: ({uuid, messageType, options, message, route}, callback=->) =>
     deviceOptions = _.omit options, 'generateAndForwardMeshbluCredentials', 'signRequest'
-    if options.signRequest && @privateKey?
-      options =
-        headers:
-          'X-MESHBLU-UUID': uuid
-        httpSignature: @HTTP_SIGNATURE_OPTIONS
-      @_doRequest {deviceOptions, messageType, options, message, route}, callback
-      return
-
     if options.generateAndForwardMeshbluCredentials
       @tokenManager.generateAndStoreTokenInCache uuid, (error, token) =>
         bearer = new Buffer("#{uuid}:#{token}").toString('base64')
         options =
           auth:
             bearer: bearer
-        @_doRequest {deviceOptions, messageType, options, message, route}, (requestError) =>
+        @_doRequest {deviceOptions, messageType, options, message, route, uuid}, (requestError) =>
           @tokenManager.removeTokenFromCache uuid, token, (error) =>
             return callback error if error?
             return callback requestError if requestError?
             callback()
       return
 
-    @_doRequest {deviceOptions, messageType, message, route}, callback
+    @_doRequest {deviceOptions, messageType, message, route, uuid}, callback
 
-  _doRequest: ({deviceOptions, messageType, options, message, route}, callback) =>
+  _doRequest: ({deviceOptions, messageType, options, message, route, uuid}, callback) =>
     message ?= {}
     options = _.defaults json: message, deviceOptions, options
     options.headers ?= {}
+    options.httpSignature = @HTTP_SIGNATURE_OPTIONS if @privateKey?
 
     options.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
     options.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?
+    options.headers['X-MESHBLU-UUID'] = uuid
 
     @request options, (error) =>
       return callback error if error?
