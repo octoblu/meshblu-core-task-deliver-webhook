@@ -53,6 +53,14 @@ class MessageWebhook
             return @_doCallback responseId, 204, callback
       return
 
+    if @privateKey? && options.signRequest
+      options = {httpSignature: @HTTP_SIGNATURE_OPTIONS}
+      @_doRequest {deviceOptions, messageType, options, message, route, uuid}, (requestError) =>
+        return @_doRequestErrorCallback responseId, requestError, callback if requestError?
+        return @_doCallback responseId, 204, callback
+      return
+
+
     @_doRequest {deviceOptions, messageType, message, route, uuid}, (requestError) =>
       return @_doRequestErrorCallback responseId, requestError, callback if requestError?
       return @_doCallback responseId, 204, callback
@@ -61,7 +69,6 @@ class MessageWebhook
     message ?= {}
     options = _.defaults json: message, deviceOptions, options
     options.headers ?= {}
-    options.httpSignature = @HTTP_SIGNATURE_OPTIONS if @privateKey? && !options.generateAndForwardMeshbluCredentials
 
     options.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
     options.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?

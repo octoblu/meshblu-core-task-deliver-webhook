@@ -17,6 +17,7 @@ describe 'MessageWebhook', ->
     options = {
       cache: redis.createClient(@redisKey)
       pepper: 'totally-a-secret'
+      privateKey: 'private-key'
       @datastore
       @uuidAliasResolver
       @pepper
@@ -156,6 +157,10 @@ describe 'MessageWebhook', ->
           headers:
             'X-MESHBLU-MESSAGE-TYPE': 'received'
             'X-MESHBLU-UUID': 'electric-eels'
+          httpSignature:
+            keyId: 'meshblu-webhook-key'
+            key: 'private-key'
+            headers: [ 'date', 'X-MESHBLU-UUID' ]
           json: devices: '*'
 
     context 'when the request yields an error', ->
