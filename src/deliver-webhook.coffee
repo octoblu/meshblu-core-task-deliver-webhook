@@ -41,13 +41,13 @@ class MessageWebhook
   _send: ({uuid, messageType, options, message, route, responseId}, callback=->) =>
     deviceOptions = _.omit options, 'generateAndForwardMeshbluCredentials', 'signRequest'
     if options.generateAndForwardMeshbluCredentials
-      @tokenManager.generateAndStoreTokenInCache uuid, (error, token) =>
+      @tokenManager.generateAndStoreTokenInCache {uuid}, (error, token) =>
         bearer = new Buffer("#{uuid}:#{token}").toString('base64')
         options =
           auth:
             bearer: bearer
         @_doRequest {deviceOptions, messageType, options, message, route, uuid}, (requestError) =>
-          @tokenManager.removeTokenFromCache uuid, token, (error) =>
+          @tokenManager.removeTokenFromCache {uuid, token}, (error) =>
             return callback error if error?
             return @_doRequestErrorCallback responseId, requestError, callback if requestError?
             return @_doCallback responseId, 204, callback
