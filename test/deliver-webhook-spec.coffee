@@ -1,8 +1,11 @@
-_ = require 'lodash'
 uuid = require 'uuid'
 redis = require 'fakeredis'
 mongojs = require 'mongojs'
 Datastore = require 'meshblu-core-datastore'
+
+{beforeEach, context, describe, it, sinon} = global
+{expect} = require 'chai'
+
 MessageWebhook = require '../'
 
 describe 'MessageWebhook', ->
@@ -59,7 +62,7 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
 
-    context 'when given a route', ->
+    context 'when given a route and forwardedRoutes', ->
       beforeEach (done) ->
         request =
           metadata:
@@ -67,6 +70,7 @@ describe 'MessageWebhook', ->
             auth: uuid: 'electric-eels'
             messageType: 'message.received'
             route: [{from: 'electric-eels', to: 'electric-feels', type: 'message.received'}]
+            forwardedRoutes: []
             options:
               url: "http://example.com"
           rawData: '{"devices":"*"}'
@@ -88,6 +92,7 @@ describe 'MessageWebhook', ->
           headers:
             'X-MESHBLU-MESSAGE-TYPE': 'message.received'
             'X-MESHBLU-ROUTE': '[{"from":"electric-eels","to":"electric-feels","type":"message.received"}]'
+            'X-MESHBLU-FORWARDED-ROUTES': '[]'
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
 

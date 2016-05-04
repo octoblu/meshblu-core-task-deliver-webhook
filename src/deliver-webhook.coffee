@@ -32,13 +32,13 @@ class MessageWebhook
     callback null, response
 
   do: (request, callback) =>
-    {auth, messageType, options, route, responseId} = request.metadata
+    {auth, forwardedRoutes, messageType, options, route, responseId} = request.metadata
     {uuid} = auth
     message = JSON.parse request.rawData
 
-    @_send {uuid, messageType, options, message, route, responseId}, callback
+    @_send {forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback
 
-  _send: ({uuid, messageType, options, message, route, responseId}, callback=->) =>
+  _send: ({forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback=->) =>
     deviceOptions = _.omit options, 'generateAndForwardMeshbluCredentials', 'signRequest'
     if options.generateAndForwardMeshbluCredentials
       @tokenManager.generateAndStoreTokenInCache {uuid}, (error, token) =>
@@ -46,7 +46,7 @@ class MessageWebhook
         options =
           auth:
             bearer: bearer
-        @_doRequest {deviceOptions, messageType, options, message, route, uuid}, (requestError) =>
+        @_doRequest {deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, (requestError) =>
           @tokenManager.removeTokenFromCache {uuid, token}, (error) =>
             return callback error if error?
             return @_doRequestErrorCallback responseId, requestError, callback if requestError?
@@ -55,23 +55,24 @@ class MessageWebhook
 
     if @privateKey? && options.signRequest
       options = {httpSignature: @HTTP_SIGNATURE_OPTIONS}
-      @_doRequest {deviceOptions, messageType, options, message, route, uuid}, (requestError) =>
+      @_doRequest {deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, (requestError) =>
         return @_doRequestErrorCallback responseId, requestError, callback if requestError?
         return @_doCallback responseId, 204, callback
       return
 
 
-    @_doRequest {deviceOptions, messageType, message, route, uuid}, (requestError) =>
+    @_doRequest {deviceOptions, forwardedRoutes, message, messageType, route, uuid}, (requestError) =>
       return @_doRequestErrorCallback responseId, requestError, callback if requestError?
       return @_doCallback responseId, 204, callback
 
-  _doRequest: ({deviceOptions, messageType, options, message, route, uuid}, callback) =>
+  _doRequest: ({deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, callback) =>
     message ?= {}
     options = _.defaults json: message, deviceOptions, options
     options.headers ?= {}
 
     options.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
     options.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?
+    options.headers['X-MESHBLU-FORWARDED-ROUTES'] = JSON.stringify(forwardedRoutes) if forwardedRoutes?
     options.headers['X-MESHBLU-UUID'] = uuid
 
     @request options, callback
