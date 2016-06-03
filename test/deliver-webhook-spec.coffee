@@ -61,6 +61,7 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-MESSAGE-TYPE': 'received'
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
+          forever: true
 
     context 'when given a route and forwardedRoutes', ->
       beforeEach (done) ->
@@ -95,6 +96,7 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-FORWARDED-ROUTES': '[]'
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
+          forever: true
 
     context 'when generating credentials', ->
       beforeEach (done) ->
@@ -130,6 +132,7 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-MESSAGE-TYPE': 'received'
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
+          forever: true
 
     context 'when signRequest', ->
       beforeEach (done) ->
@@ -167,6 +170,7 @@ describe 'MessageWebhook', ->
             key: 'private-key'
             headers: [ 'date', 'X-MESHBLU-UUID' ]
           json: devices: '*'
+          forever: true
 
     context 'when the request yields an error', ->
       beforeEach (done) ->
@@ -200,3 +204,4 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-MESSAGE-TYPE': 'received'
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
+          forever: true
