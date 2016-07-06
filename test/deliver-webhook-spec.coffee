@@ -1,6 +1,4 @@
-uuid = require 'uuid'
-redis = require 'fakeredis'
-mongojs = require 'mongojs'
+mongojs   = require 'mongojs'
 Datastore = require 'meshblu-core-datastore'
 
 {beforeEach, context, describe, it, sinon} = global
@@ -10,17 +8,16 @@ MessageWebhook = require '../'
 
 describe 'MessageWebhook', ->
   beforeEach ->
-    @redisKey = uuid.v1()
     @request = sinon.stub().yields null, {statusCode: 200}
     @datastore = new Datastore
       database: mongojs 'token-manager-test'
       collection: 'things'
     @pepper = 'im-a-pepper'
+    @privateKey = 'private-key'
     @uuidAliasResolver = resolve: (uuid, callback) => callback(null, uuid)
+
     options = {
-      cache: redis.createClient(@redisKey)
-      pepper: 'totally-a-secret'
-      privateKey: 'private-key'
+      @privateKey,
       @datastore
       @uuidAliasResolver
       @pepper
@@ -29,7 +26,6 @@ describe 'MessageWebhook', ->
     dependencies = {@request}
 
     @sut = new MessageWebhook options, dependencies
-    @cache = redis.createClient @redisKey
 
   describe '->do', ->
     context 'when given a valid webhook', ->
@@ -110,7 +106,7 @@ describe 'MessageWebhook', ->
               generateAndForwardMeshbluCredentials: true
           rawData: '{"devices":"*"}'
 
-        @sut.tokenManager.generateToken = sinon.stub().returns 'abc123'
+        @sut.tokenManager._generateToken = sinon.stub().returns 'abc123'
 
         @sut.do request, (error, @response) => done error
 
@@ -146,7 +142,7 @@ describe 'MessageWebhook', ->
               signRequest: true
           rawData: '{"devices":"*"}'
 
-        @sut.tokenManager.generateToken = sinon.stub().returns 'abc123'
+        @sut.tokenManager._generateToken = sinon.stub().returns 'abc123'
 
         @sut.do request, (error, @response) => done error
 

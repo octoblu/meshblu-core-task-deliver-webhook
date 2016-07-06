@@ -3,11 +3,11 @@ TokenManager = require 'meshblu-core-manager-token'
 http = require 'http'
 
 class MessageWebhook
-  constructor: (options={},dependencies={}) ->
-    {@cache,@datastore,pepper,uuidAliasResolver,@privateKey} = options
-    {@request} = dependencies
+  constructor: (options, dependencies={}) ->
+    {datastore,pepper,uuidAliasResolver,@privateKey} = options
+    { @request } = dependencies
     @request ?= require 'request'
-    @tokenManager = new TokenManager {@cache, @datastore, pepper, uuidAliasResolver}
+    @tokenManager = new TokenManager {datastore, pepper, uuidAliasResolver}
     @HTTP_SIGNATURE_OPTIONS =
       keyId: 'meshblu-webhook-key'
       key: @privateKey
@@ -41,13 +41,13 @@ class MessageWebhook
   _send: ({forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback=->) =>
     deviceOptions = _.omit options, 'generateAndForwardMeshbluCredentials', 'signRequest'
     if options.generateAndForwardMeshbluCredentials
-      @tokenManager.generateAndStoreTokenInCache {uuid}, (error, token) =>
+      @tokenManager.generateAndStoreToken {uuid}, (error, token) =>
         bearer = new Buffer("#{uuid}:#{token}").toString('base64')
         options =
           auth:
             bearer: bearer
         @_doRequest {deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, (requestError) =>
-          @tokenManager.removeTokenFromCache {uuid, token}, (error) =>
+          @tokenManager.revokeToken {uuid, token}, (error) =>
             return callback error if error?
             return @_doRequestErrorCallback responseId, requestError, callback if requestError?
             return @_doCallback responseId, 204, callback
@@ -59,7 +59,6 @@ class MessageWebhook
         return @_doRequestErrorCallback responseId, requestError, callback if requestError?
         return @_doCallback responseId, 204, callback
       return
-
 
     @_doRequest {deviceOptions, forwardedRoutes, message, messageType, route, uuid}, (requestError) =>
       return @_doRequestErrorCallback responseId, requestError, callback if requestError?
