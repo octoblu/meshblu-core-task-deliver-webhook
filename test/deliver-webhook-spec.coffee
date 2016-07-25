@@ -58,6 +58,7 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
           forever: true
+          gzip: true
 
     context 'when given a route and forwardedRoutes', ->
       beforeEach (done) ->
@@ -93,6 +94,7 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
           forever: true
+          gzip: true
 
     context 'when generating credentials', ->
       beforeEach (done) ->
@@ -129,6 +131,7 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
           forever: true
+          gzip: true
 
     context 'when signRequest', ->
       beforeEach (done) ->
@@ -167,6 +170,7 @@ describe 'MessageWebhook', ->
             headers: [ 'date', 'X-MESHBLU-UUID' ]
           json: devices: '*'
           forever: true
+          gzip: true
 
     context 'when the request yields an error', ->
       beforeEach (done) ->
@@ -201,3 +205,4 @@ describe 'MessageWebhook', ->
             'X-MESHBLU-UUID': 'electric-eels'
           json: devices: '*'
           forever: true
+          gzip: true

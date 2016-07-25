@@ -66,7 +66,11 @@ class MessageWebhook
 
   _doRequest: ({deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, callback) =>
     message ?= {}
-    options = _.defaults json: message, forever: true, deviceOptions, options
+    defaultOptions =
+      json: message
+      forever: true
+      gzip: true
+    options = _.defaults defaultOptions, deviceOptions, options
     options.headers ?= {}
 
     options.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
