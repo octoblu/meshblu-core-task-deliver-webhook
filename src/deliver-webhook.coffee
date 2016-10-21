@@ -1,17 +1,11 @@
-_ = require 'lodash'
+_            = require 'lodash'
 TokenManager = require 'meshblu-core-manager-token'
-http = require 'http'
+http         = require 'http'
 
 class MessageWebhook
-  constructor: (options, dependencies={}) ->
-    {datastore,pepper,uuidAliasResolver,@privateKey} = options
-    { @request } = dependencies
-    @request ?= require 'request'
+  constructor: (options) ->
+    {datastore,@cache,pepper,uuidAliasResolver} = options
     @tokenManager = new TokenManager {datastore, pepper, uuidAliasResolver}
-    @HTTP_SIGNATURE_OPTIONS =
-      keyId: 'meshblu-webhook-key'
-      key: @privateKey
-      headers: [ 'date', 'X-MESHBLU-UUID' ]
 
   _doCallback: (responseId, code, callback) =>
     response =
@@ -19,16 +13,6 @@ class MessageWebhook
         responseId: responseId
         code: code
         status: http.STATUS_CODES[code]
-    callback null, response
-
-  _doRequestErrorCallback: (responseId, requestError, callback) =>
-    response =
-      metadata:
-        responseId: responseId
-        code: 400
-        status: http.STATUS_CODES[400]
-        error:
-          message: requestError.message
     callback null, response
 
   do: (request, callback) =>
@@ -39,45 +23,41 @@ class MessageWebhook
     @_send {forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback
 
   _send: ({forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback=->) =>
+    { signRequest } = options
     deviceOptions = _.omit options, 'generateAndForwardMeshbluCredentials', 'signRequest'
     if options.generateAndForwardMeshbluCredentials
       @tokenManager.generateAndStoreToken {uuid}, (error, token) =>
-        bearer = new Buffer("#{uuid}:#{token}").toString('base64')
-        options =
-          auth:
-            bearer: bearer
-        @_doRequest {deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, (requestError) =>
-          @tokenManager.revokeToken {uuid, token}, (error) =>
-            return callback error if error?
-            return @_doRequestErrorCallback responseId, requestError, callback if requestError?
-            return @_doCallback responseId, 204, callback
+        return callback error if error?
+        delete options.generateAndForwardMeshbluCredentials
+        @_doRequest {deviceOptions, forwardedRoutes, message, messageType, options, route, uuid, token}, (error) =>
+          return callback error if error?
+          @_doCallback responseId, 204, callback
       return
 
-    if @privateKey? && options.signRequest
-      options = {httpSignature: @HTTP_SIGNATURE_OPTIONS}
-      @_doRequest {deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, (requestError) =>
-        return @_doRequestErrorCallback responseId, requestError, callback if requestError?
-        return @_doCallback responseId, 204, callback
-      return
+    @_doRequest {deviceOptions, forwardedRoutes, message, messageType, route, uuid, signRequest }, (error) =>
+      return callback error if error?
+      @_doCallback responseId, 204, callback
 
-    @_doRequest {deviceOptions, forwardedRoutes, message, messageType, route, uuid}, (requestError) =>
-      return @_doRequestErrorCallback responseId, requestError, callback if requestError?
-      return @_doCallback responseId, 204, callback
-
-  _doRequest: ({deviceOptions, forwardedRoutes, message, messageType, options, route, uuid}, callback) =>
+  _doRequest: ({deviceOptions, forwardedRoutes, message, messageType, options, route, uuid, token, signRequest }, callback) =>
     message ?= {}
     defaultOptions =
       json: message
       forever: true
       gzip: true
-    options = _.defaults defaultOptions, deviceOptions, options
-    options.headers ?= {}
 
-    options.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
-    options.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?
-    options.headers['X-MESHBLU-FORWARDED-ROUTES'] = JSON.stringify(forwardedRoutes) if forwardedRoutes?
-    options.headers['X-MESHBLU-UUID'] = uuid
+    requestOptions = _.defaults defaultOptions, deviceOptions, options
+    requestOptions.headers ?= {}
 
-    @request options, callback
+    requestOptions.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
+    requestOptions.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?
+    requestOptions.headers['X-MESHBLU-FORWARDED-ROUTES'] = JSON.stringify(forwardedRoutes) if forwardedRoutes?
+    requestOptions.headers['X-MESHBLU-UUID'] = uuid
+
+    _.set requestOptions, 'auth.bearer', new Buffer("#{uuid}:#{token}").toString('base64') if token?
+    revokeOptions = { uuid }
+    revokeOptions.token = token if token?
+    signRequest ?= false
+    data = JSON.stringify { requestOptions, revokeOptions, signRequest }
+    @cache.lpush 'webhooks', data, callback
 
 module.exports = MessageWebhook

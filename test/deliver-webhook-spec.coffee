@@ -1,4 +1,7 @@
 mongojs   = require 'mongojs'
+uuid      = require 'uuid'
+RedisNS   = require '@octoblu/redis-ns'
+Redis     = require 'ioredis'
 Datastore = require 'meshblu-core-datastore'
 
 {beforeEach, context, describe, it, sinon} = global
@@ -7,25 +10,35 @@ Datastore = require 'meshblu-core-datastore'
 MessageWebhook = require '../'
 
 describe 'MessageWebhook', ->
+  beforeEach (done) ->
+    client = new Redis 'localhost', dropBufferSupport: true
+    client.on 'ready', =>
+      @redis = new RedisNS 'test-webhooker', client
+      @redis.del 'webhooks', done
+
+  beforeEach (done) ->
+    client = new Redis 'localhost', dropBufferSupport: true
+    client.on 'ready', =>
+      @cache = new RedisNS 'test-webhooker', client
+      @cache.del 'webhooks', done
+
   beforeEach ->
-    @request = sinon.stub().yields null, {statusCode: 200}
     @datastore = new Datastore
       database: mongojs 'token-manager-test'
       collection: 'things'
     @pepper = 'im-a-pepper'
     @privateKey = 'private-key'
-    @uuidAliasResolver = resolve: (uuid, callback) => callback(null, uuid)
+    @uuidAliasResolver = resolve: (_uuid, callback) => callback(null, _uuid)
 
     options = {
       @privateKey,
       @datastore
       @uuidAliasResolver
       @pepper
+      @cache
     }
 
-    dependencies = {@request}
-
-    @sut = new MessageWebhook options, dependencies
+    @sut = new MessageWebhook options
 
   describe '->do', ->
     context 'when given a valid webhook', ->
@@ -50,15 +63,32 @@ describe 'MessageWebhook', ->
 
         expect(@response).to.deep.equal expectedResponse
 
-      it 'should call request with whatever I want', ->
-        expect(@request).to.have.been.calledWith
-          url: 'http://example.com'
-          headers:
-            'X-MESHBLU-MESSAGE-TYPE': 'received'
-            'X-MESHBLU-UUID': 'electric-eels'
-          json: devices: '*'
-          forever: true
-          gzip: true
+      describe 'when pulling out the job', ->
+        beforeEach (done) ->
+          @redis.brpop 'webhooks', 1, (error, result) =>
+            return done error if error?
+            return done new Error 'request timeout' unless result?
+            @data = JSON.parse result[1]
+            done null
+
+        it 'should have the request options', ->
+          expect(@data.requestOptions).to.deep.equal
+            url: 'http://example.com'
+            headers:
+              'X-MESHBLU-MESSAGE-TYPE': 'received'
+              'X-MESHBLU-UUID': 'electric-eels'
+            json: devices: '*'
+            forever: true
+            gzip: true
+
+        it 'should have a revokeOptions.uuid', ->
+          expect(@data.revokeOptions.uuid).to.exist
+
+        it 'should not have a revokeOptions.token', ->
+          expect(@data.revokeOptions.token).to.not.exist
+
+        it 'should not have signRequest', ->
+          expect(@data.signRequest).to.be.false
 
     context 'when given a route and forwardedRoutes', ->
       beforeEach (done) ->
@@ -84,17 +114,34 @@ describe 'MessageWebhook', ->
 
         expect(@response).to.deep.equal expectedResponse
 
-      it 'should call request with whatever I want', ->
-        expect(@request).to.have.been.calledWith
-          url: 'http://example.com'
-          headers:
-            'X-MESHBLU-MESSAGE-TYPE': 'message.received'
-            'X-MESHBLU-ROUTE': '[{"from":"electric-eels","to":"electric-feels","type":"message.received"}]'
-            'X-MESHBLU-FORWARDED-ROUTES': '[]'
-            'X-MESHBLU-UUID': 'electric-eels'
-          json: devices: '*'
-          forever: true
-          gzip: true
+      describe 'when pulling out the job', ->
+        beforeEach (done) ->
+          @redis.brpop 'webhooks', 1, (error, result) =>
+            return done error if error?
+            return done new Error 'request timeout' unless result?
+            @data = JSON.parse result[1]
+            done null
+
+        it 'should have the request options', ->
+          expect(@data.requestOptions).to.deep.equal
+            url: 'http://example.com'
+            headers:
+              'X-MESHBLU-MESSAGE-TYPE': 'message.received'
+              'X-MESHBLU-ROUTE': '[{"from":"electric-eels","to":"electric-feels","type":"message.received"}]'
+              'X-MESHBLU-FORWARDED-ROUTES': '[]'
+              'X-MESHBLU-UUID': 'electric-eels'
+            json: devices: '*'
+            forever: true
+            gzip: true
+
+        it 'should have a revokeOptions.uuid', ->
+          expect(@data.revokeOptions.uuid).to.exist
+
+        it 'should not have a revokeOptions.token', ->
+          expect(@data.revokeOptions.token).to.not.exist
+
+        it 'should not have signRequest', ->
+          expect(@data.signRequest).to.be.false
 
     context 'when generating credentials', ->
       beforeEach (done) ->
@@ -121,17 +168,34 @@ describe 'MessageWebhook', ->
 
         expect(@response).to.deep.equal expectedResponse
 
-      it 'should call request with whatever I want', ->
-        expect(@request).to.have.been.calledWith
-          auth:
-            bearer: "ZWxlY3RyaWMtZWVsczphYmMxMjM="
-          url: 'http://example.com'
-          headers:
-            'X-MESHBLU-MESSAGE-TYPE': 'received'
-            'X-MESHBLU-UUID': 'electric-eels'
-          json: devices: '*'
-          forever: true
-          gzip: true
+      describe 'when pulling out the job', ->
+        beforeEach (done) ->
+          @redis.brpop 'webhooks', 1, (error, result) =>
+            return done error if error?
+            return done new Error 'request timeout' unless result?
+            @data = JSON.parse result[1]
+            done null
+
+        it 'should have the request options', ->
+          expect(@data.requestOptions).to.deep.equal
+            auth:
+              bearer: "ZWxlY3RyaWMtZWVsczphYmMxMjM="
+            url: 'http://example.com'
+            headers:
+              'X-MESHBLU-MESSAGE-TYPE': 'received'
+              'X-MESHBLU-UUID': 'electric-eels'
+            json: devices: '*'
+            forever: true
+            gzip: true
+
+        it 'should have a revokeOptions.uuid', ->
+          expect(@data.revokeOptions.uuid).to.exist
+
+        it 'should have a revokeOptions.token', ->
+          expect(@data.revokeOptions.token).to.deep.equal 'abc123'
+
+        it 'should not have signRequest', ->
+          expect(@data.signRequest).to.be.false
 
     context 'when signRequest', ->
       beforeEach (done) ->
@@ -158,51 +222,29 @@ describe 'MessageWebhook', ->
 
         expect(@response).to.deep.equal expectedResponse
 
-      it 'should call request with whatever I want', ->
-        expect(@request).to.have.been.calledWith
-          url: 'http://example.com'
-          headers:
-            'X-MESHBLU-MESSAGE-TYPE': 'received'
-            'X-MESHBLU-UUID': 'electric-eels'
-          httpSignature:
-            keyId: 'meshblu-webhook-key'
-            key: 'private-key'
-            headers: [ 'date', 'X-MESHBLU-UUID' ]
-          json: devices: '*'
-          forever: true
-          gzip: true
+      describe 'when pulling out the job', ->
+        beforeEach (done) ->
+          @redis.brpop 'webhooks', 1, (error, result) =>
+            return done error if error?
+            return done new Error 'request timeout' unless result?
+            @data = JSON.parse result[1]
+            done null
 
-    context 'when the request yields an error', ->
-      beforeEach (done) ->
-        @request.yields new Error 'CONNECTION REFUSED'
-        request =
-          metadata:
-            responseId: 'its-electric'
-            auth: uuid: 'electric-eels'
-            messageType: 'received'
-            options:
-              url: "http://example.com"
-          rawData: '{"devices":"*"}'
+        it 'should have the request options', ->
+          expect(@data.requestOptions).to.deep.equal
+            url: 'http://example.com'
+            headers:
+              'X-MESHBLU-MESSAGE-TYPE': 'received'
+              'X-MESHBLU-UUID': 'electric-eels'
+            json: devices: '*'
+            forever: true
+            gzip: true
 
-        @sut.do request, (error, @response) => done error
+        it 'should have a revokeOptions.uuid', ->
+          expect(@data.revokeOptions.uuid).to.exist
 
-      it 'should return a 422', ->
-        expectedResponse =
-          metadata:
-            responseId: 'its-electric'
-            code: 400
-            status: 'Bad Request'
-            error:
-              message: 'CONNECTION REFUSED'
+        it 'should not have a revokeOptions.token', ->
+          expect(@data.revokeOptions.token).to.not.exist
 
-        expect(@response).to.deep.equal expectedResponse
-
-      it 'should call request with whatever I want', ->
-        expect(@request).to.have.been.calledWith
-          url: 'http://example.com'
-          headers:
-            'X-MESHBLU-MESSAGE-TYPE': 'received'
-            'X-MESHBLU-UUID': 'electric-eels'
-          json: devices: '*'
-          forever: true
-          gzip: true
+        it 'should have signRequest true', ->
+          expect(@data.signRequest).to.be.true
