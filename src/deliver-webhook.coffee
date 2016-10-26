@@ -20,7 +20,9 @@ class MessageWebhook
     {uuid} = auth
     message = JSON.parse request.rawData
 
-    @_send {forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback
+    @_checkMaxQueueLength (error) =>
+      return @_doCallback responseId, error.code, callback if error?
+      @_send {forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback
 
   _send: ({forwardedRoutes, message, messageType, options, route, responseId, uuid}, callback=->) =>
     { signRequest } = options
@@ -59,5 +61,15 @@ class MessageWebhook
     signRequest ?= false
     data = JSON.stringify { requestOptions, revokeOptions, signRequest }
     @cache.lpush 'webhooks', data, callback
+    return # avoid returning redis
+
+  _checkMaxQueueLength: (callback) =>
+    @cache.llen "webhooks", (error, queueLength) =>
+      return callback error if error?
+      return callback() if queueLength <= 1000
+      error = new Error 'Maximum Capacity Exceeded'
+      error.code = 503
+      callback error
+    return # avoid returning redis
 
 module.exports = MessageWebhook

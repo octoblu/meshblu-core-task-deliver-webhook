@@ -1,5 +1,6 @@
 mongojs   = require 'mongojs'
 uuid      = require 'uuid'
+async     = require 'async'
 RedisNS   = require '@octoblu/redis-ns'
 Redis     = require 'ioredis'
 Datastore = require 'meshblu-core-datastore'
@@ -41,6 +42,33 @@ describe 'MessageWebhook', ->
     @sut = new MessageWebhook options
 
   describe '->do', ->
+    context 'when given webhook when the queue length is too long', ->
+      beforeEach (done) ->
+        async.times 1001, (n, next) =>
+          @redis.lpush 'webhooks', '{"some":"thing"}', next
+        , done
+
+      beforeEach (done) ->
+        request =
+          metadata:
+            responseId: 'its-electric'
+            auth: uuid: 'electric-eels'
+            messageType: 'received'
+            options:
+              url: "http://example.com"
+          rawData: '{"devices":"*"}'
+
+        @sut.do request, (error, @response) => done error
+
+      it 'should return a 503', ->
+        expectedResponse =
+          metadata:
+            responseId: 'its-electric'
+            code: 503
+            status: 'Service Unavailable'
+
+        expect(@response).to.deep.equal expectedResponse
+
     context 'when given a valid webhook', ->
       beforeEach (done) ->
         request =
@@ -70,6 +98,7 @@ describe 'MessageWebhook', ->
             return done new Error 'request timeout' unless result?
             @data = JSON.parse result[1]
             done null
+          return # redis fix
 
         it 'should have the request options', ->
           expect(@data.requestOptions).to.deep.equal
@@ -121,6 +150,7 @@ describe 'MessageWebhook', ->
             return done new Error 'request timeout' unless result?
             @data = JSON.parse result[1]
             done null
+          return # redis fix
 
         it 'should have the request options', ->
           expect(@data.requestOptions).to.deep.equal
@@ -175,6 +205,7 @@ describe 'MessageWebhook', ->
             return done new Error 'request timeout' unless result?
             @data = JSON.parse result[1]
             done null
+          return # redis fix
 
         it 'should have the request options', ->
           expect(@data.requestOptions).to.deep.equal
@@ -229,6 +260,7 @@ describe 'MessageWebhook', ->
             return done new Error 'request timeout' unless result?
             @data = JSON.parse result[1]
             done null
+          return # redis fix
 
         it 'should have the request options', ->
           expect(@data.requestOptions).to.deep.equal
