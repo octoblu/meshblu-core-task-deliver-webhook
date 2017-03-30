@@ -1,5 +1,4 @@
 mongojs   = require 'mongojs'
-uuid      = require 'uuid'
 async     = require 'async'
 RedisNS   = require '@octoblu/redis-ns'
 Redis     = require 'ioredis'
@@ -8,9 +7,9 @@ Datastore = require 'meshblu-core-datastore'
 {beforeEach, context, describe, it, sinon} = global
 {expect} = require 'chai'
 
-MessageWebhook = require '../'
+DeliverWebhook = require '../'
 
-describe 'MessageWebhook', ->
+describe 'DeliverWebhook', ->
   beforeEach (done) ->
     client = new Redis 'localhost', dropBufferSupport: true
     client.on 'ready', =>
@@ -20,8 +19,8 @@ describe 'MessageWebhook', ->
   beforeEach (done) ->
     client = new Redis 'localhost', dropBufferSupport: true
     client.on 'ready', =>
-      @cache = new RedisNS 'test-webhooker', client
-      @cache.del 'webhooks', done
+      @redisClient = new RedisNS 'test-webhooker', client
+      @redisClient.del 'webhooks', done
 
   beforeEach ->
     @datastore = new Datastore
@@ -36,10 +35,10 @@ describe 'MessageWebhook', ->
       @datastore
       @uuidAliasResolver
       @pepper
-      @cache
+      @redisClient
     }
 
-    @sut = new MessageWebhook options
+    @sut = new DeliverWebhook options
 
   describe '->do', ->
     context 'when given webhook when the queue length is too long', ->

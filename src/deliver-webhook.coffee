@@ -2,10 +2,13 @@ _            = require 'lodash'
 TokenManager = require 'meshblu-core-manager-token'
 http         = require 'http'
 
-class MessageWebhook
+class DeliverWebhook
   constructor: (options) ->
-    {datastore,@cache,pepper,uuidAliasResolver} = options
-    @tokenManager = new TokenManager {datastore, pepper, uuidAliasResolver}
+    {datastore,@redisClient,pepper,uuidAliasResolver} = options
+    throw Error 'DeliverWebhook: requires redisClient' unless @redisClient?
+    throw Error 'DeliverWebhook: requires datastore' unless datastore?
+    throw Error 'DeliverWebhook: requires pepper' unless pepper?
+    @tokenManager = new TokenManager {datastore,pepper,uuidAliasResolver}
 
   _doCallback: (responseId, code, callback) =>
     response =
@@ -46,25 +49,22 @@ class MessageWebhook
       json: message
       forever: true
       gzip: true
-
     requestOptions = _.defaults defaultOptions, deviceOptions, options
     requestOptions.headers ?= {}
-
     requestOptions.headers['X-MESHBLU-MESSAGE-TYPE'] = messageType
     requestOptions.headers['X-MESHBLU-ROUTE'] = JSON.stringify(route) if route?
     requestOptions.headers['X-MESHBLU-FORWARDED-ROUTES'] = JSON.stringify(forwardedRoutes) if forwardedRoutes?
     requestOptions.headers['X-MESHBLU-UUID'] = uuid
-
     _.set requestOptions, 'auth.bearer', new Buffer("#{uuid}:#{token}").toString('base64') if token?
     revokeOptions = { uuid }
     revokeOptions.token = token if token?
     signRequest ?= false
     data = JSON.stringify { requestOptions, revokeOptions, signRequest }
-    @cache.lpush 'webhooks', data, callback
+    @redisClient.lpush 'webhooks', data, callback
     return # avoid returning redis
 
   _checkMaxQueueLength: (callback) =>
-    @cache.llen "webhooks", (error, queueLength) =>
+    @redisClient.llen "webhooks", (error, queueLength) =>
       return callback error if error?
       return callback() if queueLength <= 1000
       error = new Error 'Maximum Capacity Exceeded'
@@ -72,4 +72,4 @@ class MessageWebhook
       callback error
     return # avoid returning redis
 
-module.exports = MessageWebhook
+module.exports = DeliverWebhook
